@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Pulicam</title>
+    <style>
+     table {
+       margin: 0 auto;
+     }
+     div, td {
+       text-align: center;
+     }
+    </style>
+  </head>
+  <body>
+    <div>
+      <img id="stream" src="{{ url_for('stream') }}">
+      <br />
+      <table>
+        <tr>
+          <td></td>
+          <td><a href="{{ url_for('servo_tilt_up') }}">↑</a></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td><a href="{{ url_for('servo_pan_left') }}">←</a></td>
+          <td></td>
+          <td><a href="{{ url_for('servo_pan_right') }}">→</a></td>
+        </tr>
+        <tr>
+          <td></td>
+          <td><a href="{{ url_for('servo_tilt_down') }}">↓</a></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td colspan="3"><a href="{{ url_for('servo_tilt') }}">↕</a> <a href="{{ url_for('servo_pan') }}">↔</a></td>
+        </tr>
+      </table>
+      <br />
+      {% for k, v in memories.items() %}
+      <a href="{{ url_for('servo_memory', memo=k) }}">{{ v.name }}</a>
+      {% endfor %}
+    </div>
+  </body>
+</html>
