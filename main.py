@@ -40,44 +40,55 @@ boundary = 'pulicam'
 max_pulse = 2000
 cen_pulse = 1500
 min_pulse = 1000
+step_pulse = 50
 
 # GPIO
 pigpio.exceptions = False
 pig = pigpio.pi('localhost', 8888)
 
 
+# Servo movement
 def move_servo(servo, direction):
+    # Set the center as default (pigpio starts in an unknow status)
     new_pulse = cen_pulse
 
-    sgpio = pan_gpio
-    if servo == 'tilt':
-        sgpio = tilt_gpio
+    # Check the servo to move, pan or tilt
+    sgpio = tilt_gpio if servo == 'tilt' else pan_gpio
 
+    # Check the direction to move, if is the center just skip this part
     if direction is not 'center':
-        step = 50
-        if direction in ['right', 'up']:
-            step = -50
+        # Check if we have to add or substract to the pulse
+        step = -step_pulse if direction in ['right', 'up'] else step_pulse
 
+        # If the cameara is upside down invert the step
         if reverse_cam:
             step = -step
 
+        # Try to retrieve the current servo status
         try:
             pulse = pig.get_servo_pulsewidth(sgpio)
         except:
             pulse = 0
 
+        # Check if the current servo pulse is between the limits.
+        # Reset to the center if it is not avoiding hardware damage.
         if min_pulse > pulse or max_pulse < pulse:
-            pulse = new_pulse
+            pulse = cen_pulse
 
+        # Calc the new position (current pulse + step)
         new_pulse = pulse + step
+
+        # If the new position is not between the limits ignore the movement.
         if not min_pulse <= new_pulse <= max_pulse:
             new_pulse = pulse
 
+    # Finally set the new position
     pig.set_servo_pulsewidth(sgpio, new_pulse)
 
     return new_pulse
 
 
+# Go to memory position
 def memory_servos(memory):
     if memory in memories.keys():
         pig.set_servo_pulsewidth(pan_gpio, memories[memory]['pan'])
@@ -114,13 +125,14 @@ def requires_auth(f):
     return decorated
 
 
-# Routes
+# Index
 @app.route('/')
 @requires_auth
 def index():
     return render_template('index.html', memories=memories)
 
 
+# MJPG Steam from an image file
 @app.route('/stream')
 @requires_auth
 def stream():
@@ -143,6 +155,7 @@ def stream():
                     'boundary={}'.format(boundary))
 
 
+# Pan servo: center
 @app.route('/servo/pan')
 @requires_auth
 def servo_pan():
@@ -150,6 +163,7 @@ def servo_pan():
     return redirect(url_for('index'))
 
 
+# Pan servo: move left
 @app.route('/servo/pan/left')
 @requires_auth
 def servo_pan_left():
@@ -157,6 +171,7 @@ def servo_pan_left():
     return redirect(url_for('index'))
 
 
+# Pan servo: move right
 @app.route('/servo/pan/right')
 @requires_auth
 def servo_pan_right():
@@ -164,6 +179,7 @@ def servo_pan_right():
     return redirect(url_for('index'))
 
 
+# Tilt servo: center
 @app.route('/servo/tilt')
 @requires_auth
 def servo_tilt():
@@ -171,6 +187,7 @@ def servo_tilt():
     return redirect(url_for('index'))
 
 
+# Tilt servo: move down
 @app.route('/servo/tilt/down')
 @requires_auth
 def servo_tilt_down():
@@ -178,6 +195,7 @@ def servo_tilt_down():
     return redirect(url_for('index'))
 
 
+# Tilt servo: move up
 @app.route('/servo/tilt/up')
 @requires_auth
 def servo_tilt_up():
@@ -185,6 +203,7 @@ def servo_tilt_up():
     return redirect(url_for('index'))
 
 
+# Move both servos to a memory state
 @app.route('/servo/memory/<memo>')
 @requires_auth
 def servo_memory(memo):
